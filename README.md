@@ -1,14 +1,14 @@
-# Attendance-Manager
-A Python-based attendance management system for MyAcademy that automates student registration, daily attendance, and WhatsApp absence notifications. It includes backup/restore features, Excel export, and detailed stats, making attendance tracking simple, reliable, and professional for small educational institutes.
-
+````markdown
 # 📚 MyAcademy Attendance Management Script  
 
 **Short Description:**  
 A Python-based attendance management system for MyAcademy that automates student registration, daily attendance, and WhatsApp absence notifications. It includes backup/restore features, Excel export, and detailed stats, making attendance tracking simple, reliable, and professional for small educational institutes.  
 
+---
+
 ## 📌 Features  
 - **Student Management**  
-- Register students with name, grade, phone, joining date, and auto-generated ID.  
+  - Register students with name, grade, phone, joining date, and auto-generated ID.  
 
 - **Attendance Management**  
   - Record daily attendance (P/A/L).  
@@ -27,12 +27,16 @@ A Python-based attendance management system for MyAcademy that automates student
   - Create dated backups of student and attendance files.  
   - Restore data when needed.  
 
+---
+
 ## 🛠️ Tech Stack  
 - **Language:** Python 3  
 - **Libraries:**  
   - `pywhatkit` → WhatsApp messaging  
   - `pandas` → Export to Excel  
   - `datetime`, `os`, `shutil` → File handling & backups  
+
+---
 
 ## ▶️ How to Run  
 1. Clone the repository:  
@@ -80,3 +84,10 @@ Menu:
 * Web dashboard version.
 * SMS/email integration.
 * Attendance trend analysis & visualization.
+
+```
+
+---
+
+👉 Ahmed, do you want me to also add a **sample Excel table (Markdown format)** showing how exported attendance looks? That would make the README even more attractive.
+```
