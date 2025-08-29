@@ -64,4 +64,3 @@ Menu:
 * SMS/email integration.
 * Attendance trend analysis & visualization.
 
-```
