@@ -37,24 +37,6 @@ A Python-based attendance management system for MyAcademy that automates student
 
 ---
 
-## ▶️ How to Run  
-1. Clone the repository:  
-   git clone https://github.com/your-username/MyAcademy-Script.git
-   cd MyAcademy-Script
-
-2. Install dependencies:
-
-   ```bash
-   pip install pywhatkit pandas
-   ```
-
-3. Run the script:
-
-   ```bash
-   python MyAcademy_Script.py
-   ```
-
----
 
 ## 📊 Example Menu
 
@@ -82,9 +64,4 @@ Menu:
 * SMS/email integration.
 * Attendance trend analysis & visualization.
 
-```
-
----
-
-👉 Ahmed, do you want me to also add a **sample Excel table (Markdown format)** showing how exported attendance looks? That would make the README even more attractive.
 ```
