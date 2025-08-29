@@ -1,4 +1,4 @@
-````markdown
+
 # 📚 MyAcademy Attendance Management Script  
 
 **Short Description:**  
