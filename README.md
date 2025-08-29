@@ -1,4 +1,3 @@
-
 # 📚 MyAcademy Attendance Management Script  
 
 **Short Description:**  
@@ -40,10 +39,8 @@ A Python-based attendance management system for MyAcademy that automates student
 
 ## ▶️ How to Run  
 1. Clone the repository:  
-   ```bash
    git clone https://github.com/your-username/MyAcademy-Script.git
    cd MyAcademy-Script
-````
 
 2. Install dependencies:
 
