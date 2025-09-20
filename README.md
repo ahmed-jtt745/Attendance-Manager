@@ -7,7 +7,9 @@ A Python-based attendance management system for MyAcademy that automates student
 
 ## 📌 Features  
 - **Student Management**  
-  - Register students with name, grade, phone, joining date, and auto-generated ID.  
+  - Register students with name, grade, phone, joining date, and auto-generated ID.
+  - View attendance stats of any specific student.
+  - View complete list of stats in clean tabular form.
 
 - **Attendance Management**  
   - Record daily attendance (P/A/L).  
