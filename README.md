@@ -1,10 +1,62 @@
-📚 MyAcademy Attendance Management Script  Short Description:  A Python-based attendance management system for MyAcademy that automates student registration, daily attendance, and WhatsApp absence notifications. It includes backup/restore features, Excel export, and detailed stats, making attendance tracking simple, reliable, and professional for small educational institutes.  📌 Features  Student Management    - Register students with name, grade, phone, joining date, and auto-generated ID.    - Delete students by marking them as inactive while preserving their historical records.    - View attendance stats for a specific student.    - View a student's attendance history in a clean, formatted table.  Attendance & Notifications    - Record daily attendance (P/A/L).    - Automatically send WhatsApp absence messages to parents for attendance taken on the current day.  Data Management    - Create dated backups of student and attendance files.    - Restore data from a previous backup.  Reporting    - Print comprehensive student attendance statistics to the console in a clean, formatted table, either for all records or a specific month.    - Export monthly attendance data to a clean Excel file.  🛠️ Tech Stack  Language: Python 3  Libraries:    - pywhatkit → WhatsApp messaging    - pandas → Export to Excel    - datetime, os, shutil → File handling & backups  📊 Example MenuWelcome to My Academy Attendance System
+# 📚 MyAcademy Attendance Management Script  
+
+**Short Description:**  
+A Python-based attendance management system for MyAcademy that automates student registration, daily attendance, and WhatsApp absence notifications. It includes backup/restore features, Excel export, and detailed stats, making attendance tracking simple, reliable, and professional for small educational institutes.  
+
+---
+
+## 📌 Features  
+- **Student Management**  
+  - Register students with name, grade, phone, joining date, and auto-generated ID.  
+
+- **Attendance Management**  
+  - Record daily attendance (P/A/L).  
+  - Maintain daily attendance files + master stats file.  
+  - Edit past attendance records.  
+  - View attendance by date or by student.  
+
+- **Notifications**  
+  - Automatically send WhatsApp absence messages to parents.  
+
+- **Reports & Stats**  
+  - Track presents, absents, leaves, and attendance percentage.  
+  - Export full attendance records to Excel.  
+
+- **Backup & Restore**  
+  - Create dated backups of student and attendance files.  
+  - Restore data when needed.  
+
+---
+
+## 🛠️ Tech Stack  
+- **Language:** Python 3  
+- **Libraries:**  
+  - `pywhatkit` → WhatsApp messaging  
+  - `pandas` → Export to Excel  
+  - `datetime`, `os`, `shutil` → File handling & backups  
+
+---
+
+
+## 📊 Example Menu
+
+```
+Welcome to My Academy Attendance System
 
 Menu:
 1. Student Management
-2. Take attendance and send absence messages
+2. Take attendance
 3. Backup
 4. View and Edit Attendance Records
-5. Copy attendance to Excel file
+5. Copy to Excel file
 6. Exit
-Note: Selecting a main option will open a sub-menu with more specific choices.📁 File StructureMyAcademy_Script.py: The main script file.  students.txt: Stores registered student details.  master_attendance.txt: Keeps a running total of attendance stats for each student.  daily_attendance/: A directory where daily attendance records are stored.  backups/: A directory where data backups are saved.  deleted_students.txt: Tracks students who are no longer active.
+```
+
+---
+
+## 🚀 Future Improvements
+
+* Web dashboard version.
+* SMS/email integration.
+* Attendance trend analysis & visualization.
+
