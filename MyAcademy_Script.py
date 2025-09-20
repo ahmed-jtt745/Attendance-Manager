@@ -8,18 +8,26 @@ STUDENT_FILE = "students.txt"
 STATS_FILE = "master_attendance.txt"
 DAILY_DIR = "daily_attendance"
 BACKUP_DIR = "backups"
+DELETED_STUDENTS_FILE = "deleted_students.txt"
 
 # --- Load existing students from file ---
 def load_students():
     students = []
     if not os.path.exists(STUDENT_FILE):
         return students
+    
+    deleted_students = []
+    if os.path.exists(DELETED_STUDENTS_FILE):
+        with open(DELETED_STUDENTS_FILE, "r") as file:
+            deleted_students = [line.strip().lower() for line in file]
+
     with open(STUDENT_FILE, "r") as file:
         for line in file:
             parts = line.strip().split(",")
             if len(parts) == 5:
                 name, phone, grade, reg_num, joining_date = parts
-                students.append((name, phone, grade, reg_num, joining_date))
+                if name.lower() not in deleted_students:
+                    students.append((name, phone, grade, reg_num, joining_date))
     return students
 
 # --- Add new students to the file ---
@@ -29,8 +37,13 @@ def add_student():
         name = input("Enter student name: ").title()
         phone = input("Enter parent's phone number: ")
 
-        students = load_students()
-        reg_number = len(students) + 1
+        # Count total students from file to ensure unique registration numbers
+        total_students = 0
+        if os.path.exists(STUDENT_FILE):
+            with open(STUDENT_FILE, "r") as file:
+                total_students = len(file.readlines())
+
+        reg_number = total_students + 1
         year = str(datetime.date.today().year)[-2:]
         grade_str = f"{int(grade):02}"
         registration_number = f"MA{year}{grade_str}{reg_number:02}"
@@ -57,6 +70,28 @@ def add_student():
         cont = input("Do you want to add another student? (y/n): ").lower()
         if cont != 'y':
             break
+
+def delete_student():
+    students = load_students()
+    if not students:
+        print("No active students to delete.")
+        return
+
+    print("\nSelect a student to delete:")
+    for i, student in enumerate(students):
+        print(f"{i+1}. {student[0]} (Reg: {student[3]})")
+
+    try:
+        choice = int(input("Enter the number of the student to delete: ")) - 1
+        if 0 <= choice < len(students):
+            student_to_delete = students[choice][0]
+            with open(DELETED_STUDENTS_FILE, "a") as file:
+                file.write(f"{student_to_delete}\n")
+            print(f"Student '{student_to_delete}' marked as deleted. Their records are kept, but they will not appear in future attendance or reports.")
+        else:
+            print("Invalid choice.")
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
 
 # --- View student attendance stats ---
 def view_student_stats():
@@ -105,9 +140,11 @@ def view_student_stats():
 # --- Take attendance and send messages instantly ---
 def take_attendance():
     students = load_students()
+    send_messages = True
 
     use_custom_date = input("Do you want to enter a custom date for this attendance? (Y/N): ").strip().upper()
     if use_custom_date == "Y":
+        send_messages = False
         while True:
             custom_date_input = input("Enter the date (YYYY-MM-DD): ").strip()
             try:
@@ -163,14 +200,15 @@ def take_attendance():
     with open(os.path.join(DAILY_DIR, f"{today}.txt"), "w") as daily_file:
         daily_file.writelines(daily_lines)
 
-    for student in absent_students:
-        phone_number = student[1]
-        message = f"Assalam o Alaikum, {student[0]} is absent today.\nDate: {today}\nAhmed Ali"
+    if send_messages:
+        for student in absent_students:
+            phone_number = student[1]
+            message = f"Assalam o Alaikum, {student[0]} is absent today.\nDate: {today}\nAhmed Ali"
 
-        try:
-            pwk.sendwhatmsg_instantly(phone_number, message, wait_time=15, tab_close=True, close_time=3)
-        except Exception as e:
-            print(f"Error sending message to {student[0]}: {e}")
+            try:
+                pwk.sendwhatmsg_instantly(phone_number, message, wait_time=15, tab_close=True, close_time=3)
+            except Exception as e:
+                print(f"Error sending message to {student[0]}: {e}")
 
     print("Attendance recorded and messages sent.")
 
@@ -357,49 +395,237 @@ def edit_attendance_record():
             print("Invalid choice.")
     except ValueError:
         print("Please enter a valid number.")
-
+     
 # --- Copy data to Excel file ---      
 def txt_to_xls():
-    folder_path = "Files"
+    if not os.path.exists(DAILY_DIR):
+        print("No daily attendance records found to export.")
+        return
+
+    # Prompt user for month and year
+    month_input = input("Enter the month name to export (e.g., September): ").strip().title()
+    year_input = input("Enter the year (e.g., 2024): ").strip()
+    
+    try:
+        month_number = datetime.datetime.strptime(month_input, "%B").month
+    except ValueError:
+        print("Invalid month name. Please enter a full month name like 'September'.")
+        return
 
     attendance_data = {}
-    name_order = []  # To preserve the sequence of names from the first file
+    name_order = []
 
-    # Get and sort all text files
-    files = [f for f in os.listdir(folder_path) if f.endswith('.txt')]
-    files.sort()
+    files_to_process = []
+    for filename in sorted(os.listdir(DAILY_DIR)):
+        if filename.endswith('.txt'):
+            try:
+                file_date = datetime.datetime.strptime(filename.replace('.txt', ''), "%Y-%m-%d")
+                if file_date.month == month_number and file_date.year == int(year_input):
+                    files_to_process.append(filename)
+            except ValueError:
+                continue
 
-    for idx, file_name in enumerate(files):
+    if not files_to_process:
+        print("No attendance records found for the specified month.")
+        return
+
+    for idx, file_name in enumerate(files_to_process):
         date = file_name.replace('.txt', '')
-        file_path = os.path.join(folder_path, file_name)
+        file_path = os.path.join(DAILY_DIR, file_name)
 
         with open(file_path, 'r') as file:
             for line in file:
                 name, status = line.strip().split(',')
+                
+                deleted_students = []
+                if os.path.exists(DELETED_STUDENTS_FILE):
+                    with open(DELETED_STUDENTS_FILE, "r") as del_file:
+                        deleted_students = [line.strip().lower() for line in del_file]
+                
+                if name.lower() not in deleted_students:
+                    if name not in attendance_data:
+                        attendance_data[name] = {}
+                        if idx == 0:
+                            name_order.append(name)
 
-                # Add to name order list only on first file
-                if name not in attendance_data:
-                    attendance_data[name] = {}
-                    if idx == 0:
-                        name_order.append(name)
+                    attendance_data[name][date] = status
 
-                attendance_data[name][date] = status
-
-    # Add any new names (not in first file) to end of list
     for name in attendance_data:
         if name not in name_order:
             name_order.append(name)
 
-    # Create DataFrame and reorder it
     df = pd.DataFrame.from_dict(attendance_data, orient='index')
     df.index.name = 'Student Name'
-    df = df.loc[name_order]  # Reorder by original sequence
+    df = df.loc[name_order]
+    
+    # Check if the dataframe is empty
+    if df.empty:
+        print("No active student records to export for the specified month.")
+        return
 
-    # Save to Excel
-    output_path = "All_Attendance.xlsx"
+    output_path = f"Attendance_{month_input}_{year_input}.xlsx"
     df.to_excel(output_path)
 
-    print(f"✅ Ordered attendance exported to '{output_path}' successfully!")
+    print(f"✅ Ordered attendance for {month_input} {year_input} exported to '{output_path}' successfully!")
+
+def print_student_stats():
+    while True:
+        print("\nView and Export Student Stats:")
+        print("1. All Records")
+        print("2. Specific Month")
+        print("3. Back to Student Management Menu")
+        sub_choice = input("Choose an option: ").strip()
+
+        if sub_choice == '1':
+            if not os.path.exists(STATS_FILE):
+                print("Master attendance file doesn't exist.")
+                return
+
+            stats_data = {}
+            with open(STATS_FILE, "r") as f:
+                for line in f:
+                    name, p, a, l = line.strip().split(',')
+                    stats_data[name] = {'Presents': int(p), 'Absents': int(a), 'Leaves': int(l)}
+
+            students = load_students()
+            
+            # Prepare data for table
+            table_data = []
+            for student in students:
+                name = student[0]
+                reg_num = student[3]
+                if name in stats_data:
+                    presents = stats_data[name]['Presents']
+                    absents = stats_data[name]['Absents']
+                    leaves = stats_data[name]['Leaves']
+                    total_classes = presents + absents + leaves
+                    
+                    if total_classes > 0 and (total_classes - leaves) > 0:
+                        percentage = (presents / (total_classes - leaves)) * 100
+                    else:
+                        percentage = 0
+                    
+                    table_data.append([name, reg_num, presents, absents, leaves, f"{percentage:.2f}%"])
+            
+            # Print the formatted table
+            if not table_data:
+                print("No active student stats found.")
+                continue
+
+            # Calculate column widths dynamically
+            name_width = max(len('Name'), max(len(row[0]) for row in table_data))
+            regno_width = max(len('Regno'), max(len(row[1]) for row in table_data))
+            presents_width = max(len('Presents'), max(len(str(row[2])) for row in table_data))
+            absents_width = max(len('Absents'), max(len(str(row[3])) for row in table_data))
+            leaves_width = max(len('Leaves'), max(len(str(row[4])) for row in table_data))
+            percentage_width = max(len('Percentage'), max(len(row[5]) for row in table_data))
+
+            header_format = f"| {{:^{name_width}}} | {{:^{regno_width}}} | {{:^{presents_width}}} | {{:^{absents_width}}} | {{:^{leaves_width}}} | {{:^{percentage_width}}} |"
+            row_format = f"| {{:^{name_width}}} | {{:^{regno_width}}} | {{:^{presents_width}}} | {{:^{absents_width}}} | {{:^{leaves_width}}} | {{:^{percentage_width}}} |"
+            line = "-" * (name_width + regno_width + presents_width + absents_width + leaves_width + percentage_width + 17)
+
+            print("\n" + line)
+            print(header_format.format('Name', 'Regno', 'Presents', 'Absents', 'Leaves', 'Percentage'))
+            print(line)
+
+            for row in table_data:
+                print(row_format.format(row[0], row[1], row[2], row[3], row[4], row[5]))
+                print(line)
+
+        elif sub_choice == '2':
+            month_input = input("Enter the month name to view stats (e.g., September): ").strip().title()
+            year_input = input("Enter the year (e.g., 2024): ").strip()
+
+            try:
+                month_number = datetime.datetime.strptime(month_input, "%B").month
+            except ValueError:
+                print("Invalid month name. Please enter a full month name like 'September'.")
+                continue
+
+            monthly_stats = {}
+            students_info = {s[0]: s for s in load_students()}
+
+            if not os.path.exists(DAILY_DIR):
+                print("No daily attendance records found.")
+                continue
+
+            files_to_process = []
+            for filename in sorted(os.listdir(DAILY_DIR)):
+                if filename.endswith('.txt'):
+                    try:
+                        file_date = datetime.datetime.strptime(filename.replace('.txt', ''), "%Y-%m-%d")
+                        if file_date.month == month_number and file_date.year == int(year_input):
+                            files_to_process.append(filename)
+                    except ValueError:
+                        continue
+
+            if not files_to_process:
+                print(f"No attendance records found for {month_input} {year_input}.")
+                continue
+
+            for file_name in files_to_process:
+                file_path = os.path.join(DAILY_DIR, file_name)
+                with open(file_path, 'r') as file:
+                    for line in file:
+                        name, status = line.strip().split(',')
+                        name = name.strip()
+                        status = status.strip().upper()
+
+                        if name in students_info:
+                            if name not in monthly_stats:
+                                monthly_stats[name] = {'Presents': 0, 'Absents': 0, 'Leaves': 0}
+                            
+                            if status == 'P':
+                                monthly_stats[name]['Presents'] += 1
+                            elif status == 'A':
+                                monthly_stats[name]['Absents'] += 1
+                            elif status == 'L':
+                                monthly_stats[name]['Leaves'] += 1
+            
+            table_data = []
+            for name, stats in monthly_stats.items():
+                reg_num = students_info[name][3]
+                presents = stats['Presents']
+                absents = stats['Absents']
+                leaves = stats['Leaves']
+                total_classes = presents + absents + leaves
+
+                if total_classes > 0 and (total_classes - leaves) > 0:
+                    percentage = (presents / (total_classes - leaves)) * 100
+                else:
+                    percentage = 0
+                
+                table_data.append([name, reg_num, presents, absents, leaves, f"{percentage:.2f}%"])
+
+            # Print the formatted table
+            if not table_data:
+                print(f"No active student stats found for {month_input} {year_input}.")
+                continue
+
+            # Calculate column widths dynamically
+            name_width = max(len('Name'), max(len(row[0]) for row in table_data))
+            regno_width = max(len('Regno'), max(len(row[1]) for row in table_data))
+            presents_width = max(len('Presents'), max(len(str(row[2])) for row in table_data))
+            absents_width = max(len('Absents'), max(len(str(row[3])) for row in table_data))
+            leaves_width = max(len('Leaves'), max(len(str(row[4])) for row in table_data))
+            percentage_width = max(len('Percentage'), max(len(row[5]) for row in table_data))
+
+            header_format = f"| {{:^{name_width}}} | {{:^{regno_width}}} | {{:^{presents_width}}} | {{:^{absents_width}}} | {{:^{leaves_width}}} | {{:^{percentage_width}}} |"
+            row_format = f"| {{:^{name_width}}} | {{:^{regno_width}}} | {{:^{presents_width}}} | {{:^{absents_width}}} | {{:^{leaves_width}}} | {{:^{percentage_width}}} |"
+            line = "-" * (name_width + regno_width + presents_width + absents_width + leaves_width + percentage_width + 17)
+
+            print("\n" + line)
+            print(header_format.format('Name', 'Regno', 'Presents', 'Absents', 'Leaves', 'Percentage'))
+            print(line)
+
+            for row in table_data:
+                print(row_format.format(row[0], row[1], row[2], row[3], row[4], row[5]))
+                print(line)
+
+        elif sub_choice == '3':
+            break
+        else:
+            print("Invalid choice. Please enter a number between 1 and 3.")
 
 
 # --- Main menu ---
@@ -408,16 +634,12 @@ def main():
 
     while True:
         print("\nMenu:")
-        print("1. Add new student(s)")
-        print("2. View student attendance stats")
-        print("3. Take attendance and send absence messages")
-        print("4. Create Backup")
-        print("5. Restore from Backup")
-        print("6. View date-wise attendance for a student")
-        print("7. View attendance of a specific date")
-        print("8. Edit attendance record for a date")
-        print("9. Copy attendance to Excel file")
-        print("10. Exit")
+        print("1. Student Management")
+        print("2. Take attendance")
+        print("3. Backup")
+        print("4. View and Edit Attendance Records")
+        print("5. Copy to Excel file")
+        print("6. Exit")
 
         choice = input("Choose an option: ").strip()
         if not choice.isdigit():
@@ -425,28 +647,74 @@ def main():
             continue
 
         if choice == '1':
-            add_student()
+            while True:
+                print("\nStudent Management:")
+                print("1. Add new student(s)")
+                print("2. Delete a student")
+                print("3. View student attendance stats (Specific Student)")
+                print("4. View date-wise attendance for a student")
+                print("5. View Student Stats (Table Format)")
+                print("6. Back to Main Menu")
+                
+                sub_choice = input("Choose an option: ").strip()
+                if sub_choice == '1':
+                    add_student()
+                elif sub_choice == '2':
+                    delete_student()
+                elif sub_choice == '3':
+                    view_student_stats()
+                elif sub_choice == '4':
+                    view_attendance_by_date()
+                elif sub_choice == '5':
+                    print_student_stats()
+                elif sub_choice == '6':
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 6.")
+
         elif choice == '2':
-            view_student_stats()
-        elif choice == '3':
             take_attendance()
+        elif choice == '3':
+            while True:
+                print("\nBackup:")
+                print("1. Create Backup")
+                print("2. Restore from Backup")
+                print("3. Back to Main Menu")
+
+                sub_choice = input("Choose an option: ").strip()
+                if sub_choice == '1':
+                    create_backup()
+                elif sub_choice == '2':
+                    restore_backup()
+                elif sub_choice == '3':
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 3.")
+
         elif choice == '4':
-            create_backup()
+            while True:
+                print("\nView and Edit Attendance:")
+                print("1. View attendance of a specific date")
+                print("2. Edit attendance record for a date")
+                print("3. Back to Main Menu")
+
+                sub_choice = input("Choose an option: ").strip()
+                if sub_choice == '1':
+                    view_attendance_on_specific_date()
+                elif sub_choice == '2':
+                    edit_attendance_record()
+                elif sub_choice == '3':
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 3.")
+
         elif choice == '5':
-            restore_backup()
-        elif choice == '6':
-            view_attendance_by_date()
-        elif choice == '7':
-            view_attendance_on_specific_date()
-        elif choice == '8':
-            edit_attendance_record()
-        elif choice == '9':
             txt_to_xls()
-        elif choice == '10':
+        elif choice == '6':
             print("Goodbye! Exiting program.")
             break
         else:
-            print("Invalid choice! Please enter a number between 1 and 9.")
+            print("Invalid choice! Please enter a number between 1 and 6.")
 
         continue_menu = input("\nDo you want to go back to the main menu? (y/n): ").lower()
         if continue_menu != 'y':
